@@ -136,6 +136,11 @@ function parseDryRun(output) {
   }
 }
 
+function installerReason(output) {
+  const matches = output.match(/installer_[a-z0-9_:-]{1,160}/gu)
+  return matches?.at(-1) ?? "unknown"
+}
+
 async function main() {
   const config = readConfig({ ...process.env })
   if (config.status !== "ready") return config
@@ -177,7 +182,17 @@ async function main() {
     }
     const failedCheck = HOSTED_CLEAN_MACHINE_REQUIRED_CHECKS.find((check) => checks[check] !== true)
     if (failedCheck) {
-      return reject(`installer_hosted_clean_lifecycle_failed:${failedCheck}`)
+      const failedOutput =
+        failedCheck === "onlineInstall"
+          ? online.output
+          : failedCheck === "offlineInstall"
+            ? offlineInstall.output
+            : failedCheck === "sameVersion"
+              ? sameVersion.output
+              : dryRun.output
+      return reject(
+        `installer_hosted_clean_lifecycle_failed:${failedCheck}:${installerReason(failedOutput)}`,
+      )
     }
     const warningObserved = online.output.includes("unsigned_origin_unverified")
     if (!warningObserved) return reject("installer_hosted_clean_unsigned_warning_missing")
