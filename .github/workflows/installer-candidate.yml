@@ -5,18 +5,28 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Immutable v-prefixed release tag to rebuild
+        required: true
+        type: string
+
+env:
+  RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
 
 jobs:
   build-js-packages:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
       - name: Validate immutable tag and workspace version
         shell: bash
         run: |
           set -euo pipefail
           workspace_version="$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync("package.json", "utf8")).version)')"
-          if [ "$GITHUB_REF_NAME" != "v$workspace_version" ]; then
+          if [ "$RELEASE_TAG" != "v$workspace_version" ]; then
             echo "installer_release_tag_version_mismatch"
             exit 1
           fi
@@ -32,7 +42,7 @@ jobs:
       - run: pnpm -r build
       - run: pnpm exec vitest run --cache=false tests/npm-install-packaging.test.ts
       - run: mkdir -p release/npm/tarballs
-      - run: node scripts/package-npm.mjs --version "$GITHUB_REF_NAME" --output-dir release/npm
+      - run: node scripts/package-npm.mjs --version "$RELEASE_TAG" --output-dir release/npm
       - run: npm pack ./release/npm/core --pack-destination release/npm/tarballs
       - run: npm pack ./release/npm/webui --pack-destination release/npm/tarballs
       - run: npm pack ./release/npm/cli --pack-destination release/npm/tarballs
@@ -73,6 +83,8 @@ jobs:
       YEONJANG_TARGET_TRIPLE: ${{ matrix.rust_target }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
       - uses: pnpm/action-setup@v4
         with:
           version: 8.10.2
@@ -86,7 +98,7 @@ jobs:
       - run: ${{ matrix.build }}
       - name: Package unsigned Yeonjang target
         shell: bash
-        run: node scripts/package-yeonjang-platform.mjs --target ${{ matrix.target }} --version "$GITHUB_REF_NAME" --output-dir release/npm ${{ matrix.package_args }}
+        run: node scripts/package-yeonjang-platform.mjs --target ${{ matrix.target }} --version "$RELEASE_TAG" --output-dir release/npm ${{ matrix.package_args }}
       - run: mkdir -p release/npm/tarballs
         shell: bash
       - run: npm pack ./release/npm/yeonjang-${{ matrix.target }} --pack-destination release/npm/tarballs
@@ -123,6 +135,8 @@ jobs:
           dnf -y install libayatana-appindicator-gtk3-devel || \
             dnf -y install libappindicator-gtk3-devel
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
       - uses: pnpm/action-setup@v4
         with:
           version: 8.10.2
@@ -132,7 +146,7 @@ jobs:
           registry-url: https://registry.npmjs.org
       - uses: actions-rust-lang/setup-rust-toolchain@v1
       - run: bash scripts/build-yeonjang-linux.sh
-      - run: node scripts/package-yeonjang-platform.mjs --target linux-x64 --version "$GITHUB_REF_NAME" --output-dir release/npm
+      - run: node scripts/package-yeonjang-platform.mjs --target linux-x64 --version "$RELEASE_TAG" --output-dir release/npm
       - run: mkdir -p release/npm/tarballs
       - run: npm pack ./release/npm/yeonjang-linux-x64 --pack-destination release/npm/tarballs
       - uses: actions/upload-artifact@v4
@@ -168,6 +182,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
       - name: Install static Linux verifier toolchain
         if: matrix.installer_target == 'linux-x64'
         run: sudo apt-get update && sudo apt-get install -y musl-tools
@@ -197,6 +213,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24.18.0
@@ -232,7 +250,7 @@ jobs:
             'release/node-release-keys/release-keys.tar.gz' | sha256sum --check --strict
           tar -xzf release/node-release-keys/release-keys.tar.gz -C release/node-release-keys
           node scripts/prepare-installer-inputs.mjs \
-            --package-version "${GITHUB_REF_NAME#v}" \
+            --package-version "${RELEASE_TAG#v}" \
             --input-dir "$input_root" \
             --shasums "$input_root/SHASUMS256.txt" \
             --signature "$input_root/SHASUMS256.txt.sig" \
@@ -300,6 +318,8 @@ jobs:
         shell: bash
         run: dnf -y install ca-certificates curl findutils gcc gcc-c++ gcc-toolset-12-gcc-c++ git make python39 tar xz
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24.18.0
@@ -320,7 +340,7 @@ jobs:
         run: |
           set -euo pipefail
           input_root='release/installer-input/files'
-          version="${GITHUB_REF_NAME#v}"
+          version="${RELEASE_TAG#v}"
           mkdir -p release/node-extracted release/private-node release/application
           if [[ "$INSTALLER_TARGET" == win32-* ]]; then
             unzip -q "$input_root/$NODE_ARCHIVE" -d release/node-extracted
@@ -380,13 +400,15 @@ jobs:
           retention-days: 14
 
   prepare-installer-candidate:
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || inputs.release_tag != ''
     needs:
       - build-installer-bundles
       - build-installer-verifiers
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24.18.0
@@ -407,18 +429,18 @@ jobs:
             --verifier-root release/candidate/verifiers \
             --output-dir release/candidate/receipts
           node scripts/compose-installer-release.mjs prepare \
-            --release-version "${GITHUB_REF_NAME#v}" \
+            --release-version "${RELEASE_TAG#v}" \
             --artifact-receipts release/candidate/receipts/artifact-receipts.json \
             --output-dir release/candidate/prepared
       - uses: actions/upload-artifact@v4
         with:
-          name: installer-release-candidate-${{ github.ref_name }}
+          name: installer-release-candidate-${{ inputs.release_tag || github.ref_name }}
           path: release/candidate
           if-no-files-found: error
           retention-days: 30
 
   create-prerelease-target:
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || inputs.release_tag != ''
     needs:
       - prepare-installer-candidate
     runs-on: ubuntu-latest
@@ -429,11 +451,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            test "$(gh release view "$GITHUB_REF_NAME" --json isPrerelease --jq .isPrerelease)" = true
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            test "$(gh release view "$RELEASE_TAG" --json isPrerelease --jq .isPrerelease)" = true
           else
-            gh release create "$GITHUB_REF_NAME" \
-              --title "Sponzey Knowbee $GITHUB_REF_NAME" \
+            gh release create "$RELEASE_TAG" \
+              --title "Sponzey Knowbee $RELEASE_TAG" \
               --notes "Unsigned installer assets remain gated by native and clean-machine evidence." \
               --prerelease
           fi

@@ -389,7 +389,7 @@ describe("npm install packaging", () => {
 
     expect(workflow).toContain("scripts/package-npm.mjs")
     expect(workflow).toContain("scripts/package-yeonjang-platform.mjs")
-    expect(workflow).toContain('--version "$GITHUB_REF_NAME"')
+    expect(workflow).toContain('--version "$RELEASE_TAG"')
     expect(workflow).toContain("macos-latest")
     expect(workflow).toContain("build-yeonjang-linux-package:")
     expect(workflow).toContain("image: rockylinux/rockylinux:8.10")

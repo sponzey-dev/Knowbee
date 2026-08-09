@@ -61,7 +61,7 @@ describe("task019 installer release workflow", () => {
     const workflow = readFileSync(".github/workflows/installer-candidate.yml", "utf8")
     expect(workflow).toMatch(/create-prerelease-target:\n\s+if: startsWith\(github\.ref, 'refs\/tags\/'\)/u)
     expect(workflow).toContain(
-      'test "$(gh release view "$GITHUB_REF_NAME" --json isPrerelease --jq .isPrerelease)" = true',
+      'test "$(gh release view "$RELEASE_TAG" --json isPrerelease --jq .isPrerelease)" = true',
     )
     expect(workflow).not.toMatch(/\n\s+publish:\n/u)
     expect(workflow).not.toContain("npm publish")
@@ -76,5 +76,15 @@ describe("task019 installer release workflow", () => {
     expect(workflow).toContain("installer_release_tag_version_mismatch")
     expect(workflow).toContain("process.stdout.write(JSON.parse(require(\"node:fs\").readFileSync(\"package.json\", \"utf8\")).version)")
     expect(workflow).not.toContain('node -p \\"JSON.parse')
+  })
+
+  it("can rebuild an existing immutable candidate tag from the current installer workflow", () => {
+    const workflow = readFileSync(".github/workflows/installer-candidate.yml", "utf8")
+
+    expect(workflow).toContain("release_tag:")
+    expect(workflow).toContain("Immutable v-prefixed release tag to rebuild")
+    expect(workflow).toContain("RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}")
+    expect(workflow).toContain("ref: ${{ inputs.release_tag || github.ref }}")
+    expect(workflow).toContain("inputs.release_tag || github.ref_name")
   })
 })
