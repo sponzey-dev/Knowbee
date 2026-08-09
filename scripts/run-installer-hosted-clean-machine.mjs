@@ -175,8 +175,9 @@ async function main() {
       noBrowser: dryRunResult?.browser === false,
       sameVersion: sameVersion.status === "passed",
     }
-    if (HOSTED_CLEAN_MACHINE_REQUIRED_CHECKS.some((check) => checks[check] !== true)) {
-      return reject("installer_hosted_clean_lifecycle_failed")
+    const failedCheck = HOSTED_CLEAN_MACHINE_REQUIRED_CHECKS.find((check) => checks[check] !== true)
+    if (failedCheck) {
+      return reject(`installer_hosted_clean_lifecycle_failed:${failedCheck}`)
     }
     const warningObserved = online.output.includes("unsigned_origin_unverified")
     if (!warningObserved) return reject("installer_hosted_clean_unsigned_warning_missing")
