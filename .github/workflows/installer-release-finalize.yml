@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       candidate_run_id:
-        description: npm release workflow run containing the candidate artifact
+        description: installer candidate workflow run containing the candidate artifact
         required: true
         type: string
       evidence_run_id:

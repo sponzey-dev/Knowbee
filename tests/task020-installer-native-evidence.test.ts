@@ -45,7 +45,7 @@ function fixture() {
 
 describe("task020 installer native evidence", () => {
   it("keeps native package builds unsigned while retaining Node supplier GPG verification", () => {
-    const workflow = readFileSync(".github/workflows/npm-release.yml", "utf8")
+    const workflow = readFileSync(".github/workflows/installer-candidate.yml", "utf8")
     expect(workflow).toContain("SHASUMS256.txt.sig")
     expect(workflow).toContain("x86_64-unknown-linux-musl")
     expect(workflow).toContain("image: rockylinux/rockylinux:8.10")

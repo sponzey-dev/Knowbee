@@ -384,8 +384,8 @@ describe("npm install packaging", () => {
     })
   })
 
-  it("publishes installer inputs through GitHub Releases without npm registry publication", () => {
-    const workflow = readFileSync(".github/workflows/npm-release.yml", "utf-8")
+  it("uses local npm-format archives only to assemble an installer prerelease without registry publication", () => {
+    const workflow = readFileSync(".github/workflows/installer-candidate.yml", "utf-8")
 
     expect(workflow).toContain("scripts/package-npm.mjs")
     expect(workflow).toContain("scripts/package-yeonjang-platform.mjs")
@@ -399,11 +399,11 @@ describe("npm install packaging", () => {
       /build-yeonjang-linux-package:[\s\S]*bash scripts\/build-yeonjang-linux\.sh/u,
     )
     expect(workflow).toContain("windows-latest")
-    expect(workflow).toContain("github-release:")
-    expect(workflow).toMatch(/github-release:[\s\S]*contents: write/u)
+    expect(workflow).toContain("create-prerelease-target:")
+    expect(workflow).toMatch(/create-prerelease-target:[\s\S]*contents: write/u)
     expect(workflow).toContain("GH_REPO: ${{ github.repository }}")
     expect(workflow).toContain("gh release create")
-    expect(workflow).toContain("gh release upload")
+    expect(workflow).not.toContain("gh release upload \"$GITHUB_REF_NAME\"")
     expect(workflow).not.toMatch(/\n\s+publish:\n/u)
     expect(workflow).not.toContain("npm publish")
     expect(workflow).not.toContain("NODE_AUTH_TOKEN")

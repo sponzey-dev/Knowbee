@@ -131,7 +131,7 @@ node scripts/check-installer-release-readiness.mjs \
 A nonzero result is a release blocker. Resolve every returned `missing` item and rerun the
 preflight before beginning the sequence below.
 
-1. Run `npm release` for the tag and retain the
+1. Run `installer candidate` for the tag and retain the
    `installer-release-candidate-<tag>` artifact and its run ID.
 2. Run `installer native evidence` with that candidate run. It must produce all five
    `unsigned_origin_unverified` native rows.

@@ -85,7 +85,7 @@ afterEach(() => {
 
 describe("task011 native installer verifier", () => {
   it("builds a locked verifier binary for every supported release target", () => {
-    const workflow = readFileSync(".github/workflows/npm-release.yml", "utf8")
+    const workflow = readFileSync(".github/workflows/installer-candidate.yml", "utf8")
     for (const [target, rustTarget] of [
       ["darwin-arm64", "aarch64-apple-darwin"],
       ["darwin-x64", "x86_64-apple-darwin"],

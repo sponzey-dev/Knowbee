@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       candidate_run_id:
-        description: npm release workflow run containing the exact candidate
+        description: installer candidate workflow run containing the exact candidate
         required: true
         type: string
       native_evidence_run_id:

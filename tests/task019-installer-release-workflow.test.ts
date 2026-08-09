@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 
 describe("task019 installer release workflow", () => {
   it("builds five native bundles and prepares an unsigned candidate", () => {
-    const workflow = readFileSync(".github/workflows/npm-release.yml", "utf8")
+    const workflow = readFileSync(".github/workflows/installer-candidate.yml", "utf8")
     expect(workflow).toContain("prepare-installer-inputs:")
     expect(workflow).toContain("build-installer-bundles:")
     expect(workflow).toContain("prepare-installer-candidate:")
@@ -57,19 +57,20 @@ describe("task019 installer release workflow", () => {
     expect(workflow).toContain("Expected exactly five installer verifier assets")
   })
 
-  it("never overwrites a stable release or publishes installer packages to npm", () => {
-    const workflow = readFileSync(".github/workflows/npm-release.yml", "utf8")
-    expect(workflow).toMatch(/github-release:\n\s+if: startsWith\(github\.ref, 'refs\/tags\/'\)/u)
+  it("never overwrites a stable release or invokes an npm release workflow", () => {
+    const workflow = readFileSync(".github/workflows/installer-candidate.yml", "utf8")
+    expect(workflow).toMatch(/create-prerelease-target:\n\s+if: startsWith\(github\.ref, 'refs\/tags\/'\)/u)
     expect(workflow).toContain(
       'test "$(gh release view "$GITHUB_REF_NAME" --json isPrerelease --jq .isPrerelease)" = true',
     )
     expect(workflow).not.toMatch(/\n\s+publish:\n/u)
     expect(workflow).not.toContain("npm publish")
     expect(workflow).not.toContain("NPM_TOKEN")
+    expect(workflow).not.toContain("name: npm release")
   })
 
   it("rejects a candidate tag that does not exactly match the workspace release version", () => {
-    const workflow = readFileSync(".github/workflows/npm-release.yml", "utf8")
+    const workflow = readFileSync(".github/workflows/installer-candidate.yml", "utf8")
 
     expect(workflow).toContain("Validate immutable tag and workspace version")
     expect(workflow).toContain("installer_release_tag_version_mismatch")

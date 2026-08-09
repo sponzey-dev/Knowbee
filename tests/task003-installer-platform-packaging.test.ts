@@ -76,7 +76,7 @@ describe("task003 installer platform packaging", () => {
   }, 120_000)
 
   it("builds every native profile on a matching GitHub runner with pinned Node 24", () => {
-    const workflow = readFileSync(".github/workflows/npm-release.yml", "utf8")
+    const workflow = readFileSync(".github/workflows/installer-candidate.yml", "utf8")
     const configuredNodeVersions = [...workflow.matchAll(/node-version:\s*([^\s]+)/g)].map(
       (match) => match[1],
     )
