@@ -18,9 +18,11 @@
 - `inspect-installer-native.mjs`는 unsigned manifest로 native verifier가 추출한 macOS/Windows exact stage의 header target과 verifier digest를 검사합니다. `inspect-installer-linux-native.mjs`는 같은 binding에 Linux ABI floor를 추가합니다.
 - `compose-installer-native-evidence.mjs`는 다섯 native attestation을 `unsigned_origin_unverified`, candidate, bundle SHA-256, verifier SHA-256에 다시 결속해 원자적으로 `platform-evidence.json`을 씁니다.
 - `build-yeonjang-macos.sh`는 공개 installer 하한과 동일하게 Rust/Swift/app bundle의 macOS deployment target을 13.5로 고정합니다.
-- `compose-installer-clean-machine-evidence.mjs`는 독립 native runner가 만든 exact 다섯 closed-schema receipt만 candidate/native artifact에 결속해 dry-run과 rollback matrix evidence로 집계합니다. 각 receipt는 `unsigned_origin_unverified`와 OS 경고의 실제 관찰·확인을 기록해야 합니다.
+- `run-installer-hosted-clean-machine.mjs`는 GitHub-hosted matrix에서 공개된 bootstrap을 실제로 내려 받아 online/offline 설치, no-service, no-browser, 동일 버전 재설치를 관찰하고 bounded receipt input을 만듭니다.
+- `compose-installer-clean-machine-evidence.mjs`는 exact 다섯 hosted receipt를 candidate/native artifact에 결속합니다. 각 receipt는 `unsigned_origin_unverified`와 bootstrap 경고 관찰을 기록하고, disposable hosted runner의 reboot recovery 미검증은 명시적 limitation으로 보존합니다.
+- `write-installer-hosted-clean-machine-receipt.mjs`는 GitHub-hosted lifecycle observation을 bounded v2 receipt로 기록하며, reboot limitation 없이는 receipt를 만들지 않습니다.
 - `collect-installer-finalized-assets.mjs`는 finalizer의 exact 14개 unsigned 공개 자산을 size/SHA-256 inventory로 고정하고 stable promotion 전에 다시 검증합니다.
-- `check-installer-release-readiness.mjs`는 GitHub-hosted clean-machine Actions를 전제로 protected environment의 `required_reviewers` 규칙과 exact prerelease를 read-only로 확인해 release 시작 전 missing boundary를 typed result로 출력합니다.
+- `check-installer-release-readiness.mjs`는 GitHub Actions release flow의 protected environment `required_reviewers` 규칙과 exact prerelease를 read-only로 확인해 release 시작 전 missing boundary를 typed result로 출력합니다.
 
 ## 자체 검증 스크립트
 

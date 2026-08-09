@@ -117,9 +117,9 @@ Use one immutable `release_tag` and preserve every workflow run ID. Do not subst
 because its tag or version text looks equivalent.
 
 Before opening a candidate workflow, an authenticated release operator can run the read-only
-preflight below. It checks the three required protected environments and their
-`required_reviewers` protection rule, at least one self-hosted runner registration, and the exact
-prerelease tag; it does not inspect or expose secrets, create a release, or substitute for
+preflight below. It checks the required protected environments and their
+`required_reviewers` protection rule and the exact prerelease tag; it does not inspect or expose
+secrets, create a release, or substitute for
 native/clean-machine evidence.
 
 ```bash
@@ -139,7 +139,10 @@ preflight before beginning the sequence below.
    `installer-release-publish` environment renders the unsigned bootstrap and uploads the scripts,
    manifest, five bundles, five verifiers, and `installer-rehearsal-gate.json` only to the
    already-existing exact prerelease.
-4. On GitHub-hosted Actions clean matrix hosts, exercise the published prerelease bytes. Produce one
+4. GitHub-hosted Actions runs `installer clean machine receipts` for the exact candidate on the
+   five target runners. It observes the published bootstrap's online/offline install, no-service,
+   no-browser, and same-version paths. It preserves `github_hosted_runner_disposable` for reboot
+   recovery; this limitation is never a successful reboot claim. Each job produces one actual
    artifact per exact target named `installer-clean-machine-receipt-<target>`, containing
    `clean-machine-receipt-<target>.json`. Each closed receipt must state
    `originTrust=unsigned_origin_unverified` and record that the OS warning was both observed and
@@ -148,9 +151,8 @@ preflight before beginning the sequence below.
 5. Run `installer clean machine evidence` with the candidate, native-evidence, and independent
    receipt run IDs. It accepts exactly five closed-schema receipts and binds every one to the same
    candidate and artifact SHA-256. Each receipt must report one command, zero or one confirmation,
-   zero follow-up commands, and passed dry-run, online/offline install, service/health/WebUI,
-   opt-out, login PATH, same-version, upgrade, forced rollback, reinstall, state-preserving
-   uninstall, and reboot recovery checks.
+   zero follow-up commands, and passed dry-run, online/offline install, no-service, no-browser,
+   and same-version checks. Reboot recovery remains an explicit hosted-runner limitation.
 6. Run `installer release finalize` with the candidate and aggregated evidence run IDs. It verifies
    that the 14 rehearsal bytes are unchanged, then adds only `installer-release-gate.json` and
    `installer-finalized-assets.json`. The finalizer artifact contains the exact 14 publishable

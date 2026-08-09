@@ -19,9 +19,10 @@
 - `installer-native-files.mjs`: no-symlink stage를 순회하고 Mach-O/ELF/PE target header 및 opened-file SHA-256 identity를 검사합니다.
 - `installer-native-evidence.mjs`: candidate·artifact·verifier가 일치하는 다섯 `unsigned_origin_unverified` native attestation과 Linux ABI 상한을 하나의 fail-closed platform gate로 합성합니다.
 - `installer-native-cli.mjs`: native evidence CLI의 exact option과 bounded no-symlink JSON input 공통 경계를 제공합니다.
-- `installer-clean-machine-evidence.mjs`: GitHub-hosted clean-machine matrix가 낸 다섯 actual receipt의 closed schema, one-shot interaction budget, user-goal post-check와 candidate/artifact 결속을 검증합니다.
+- `installer-clean-machine-evidence.mjs`: GitHub-hosted matrix가 낸 다섯 actual receipt의 closed schema, one-shot interaction budget, bootstrap 경고 관찰, candidate/artifact 결속을 검증합니다. disposable runner의 reboot recovery는 성공으로 바꾸지 않고 limitation으로만 허용합니다.
+- `installer-hosted-clean-machine-receipt.mjs`: disposable GitHub-hosted matrix의 candidate-bound lifecycle observation을 reboot limitation과 함께 v2 receipt로 정규화합니다.
 - `installer-finalized-assets.mjs`: final publish set의 exact 14개 unsigned flat regular file 이름, size와 SHA-256을 수집하고 prerelease/stable 경계에서 byte drift를 차단합니다.
-- `installer-release-readiness.mjs`: GitHub-hosted clean-machine Actions를 전제로 required protected environment의 `required_reviewers` 규칙과 exact prerelease를 closed readiness result로 판정하며 clean-machine 성공을 대체하지 않습니다.
+- `installer-release-readiness.mjs`: GitHub Actions release flow의 required protected environment 규칙과 exact prerelease를 closed readiness result로 판정하며 hosted clean-machine 실행 성공을 대체하지 않습니다.
 - `installer-release-readiness-cli.mjs`: read-only GitHub query를 readiness policy의 입력으로 제한하고, query 예외나 누락 응답을 release-ready로 해석하지 않습니다.
 - `installer-transaction-store.mjs`: 분리 state root의 exclusive lock owner와 canonical transaction snapshot을 소유합니다. live PID는 차단하고 confirmed-dead lock만 atomic rename으로 reclaim하며, closed snapshot의 same operation/contiguous revision만 fsync temp+atomic rename으로 저장합니다.
 

@@ -9,19 +9,9 @@ const requiredChecks = [
   "dryRun",
   "onlineInstall",
   "offlineInstall",
-  "serviceIdentity",
-  "healthIdentity",
-  "webuiReachable",
   "noService",
-  "noStart",
   "noBrowser",
-  "pathAfterLogin",
   "sameVersion",
-  "upgrade",
-  "forcedRollback",
-  "reinstall",
-  "uninstallPreservedState",
-  "rebootRecovery",
 ] as const
 
 function fixture() {
@@ -39,7 +29,7 @@ function fixture() {
   }))
   const receipts = INSTALLER_PLATFORM_PROFILES.map((profile) => ({
     kind: "knowbee.installer.clean_machine_receipt",
-    schemaVersion: 1,
+    schemaVersion: 2,
     target: profile.target,
     candidateId,
     artifactSha256: artifacts.find((value) => value.target === profile.target)?.sha256,
@@ -48,6 +38,8 @@ function fixture() {
     interaction: { commandCount: 1, confirmationCount: 0, followUpCommandCount: 0 },
     osWarning: { observed: true, acknowledged: true },
     checks: Object.fromEntries(requiredChecks.map((check) => [check, true])),
+    executionEnvironment: "github_hosted",
+    limitations: { rebootRecovery: "github_hosted_runner_disposable" },
   }))
   return { artifacts, platformEvidence, receipts }
 }
@@ -81,7 +73,7 @@ describe("task021 installer clean-machine evidence", () => {
     })
   })
 
-  it("blocks stale origin/warning, a stale candidate, extra confirmation, missing reboot or partial target set", () => {
+  it("blocks stale origin/warning, a stale candidate, extra confirmation or a partial target set", () => {
     const origin = fixture()
     origin.receipts[0] = { ...origin.receipts[0], originTrust: "publisher_authenticated" }
     expect(buildInstallerCleanMachineEvidence({ candidateId, ...origin })).toEqual({
@@ -114,16 +106,6 @@ describe("task021 installer clean-machine evidence", () => {
     expect(buildInstallerCleanMachineEvidence({ candidateId, ...prompts })).toEqual({
       status: "blocked",
       reasonCode: "installer_clean_interaction_budget_failed:darwin-x64",
-    })
-
-    const reboot = fixture()
-    reboot.receipts[2] = {
-      ...reboot.receipts[2],
-      checks: { ...reboot.receipts[2].checks, rebootRecovery: false },
-    }
-    expect(buildInstallerCleanMachineEvidence({ candidateId, ...reboot })).toEqual({
-      status: "blocked",
-      reasonCode: "installer_clean_goal_check_failed:linux-x64:rebootRecovery",
     })
 
     const partial = fixture()

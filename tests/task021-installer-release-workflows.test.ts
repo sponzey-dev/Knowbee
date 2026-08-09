@@ -26,4 +26,17 @@ describe("task021 installer release workflows", () => {
     expect(workflow).toContain("installer-clean-machine-evidence-${{ inputs.release_tag }}")
     expect(workflow).not.toMatch(/status['"]?\s*[:=]\s*['"]passed/iu)
   })
+
+  it("produces five hosted clean-machine receipts without representing disposable-runner reboot recovery as passed", () => {
+    const workflow = readFileSync(".github/workflows/installer-clean-machine-receipts.yml", "utf8")
+    expect(workflow).toContain("matrix:")
+    expect(workflow).toContain("darwin-arm64")
+    expect(workflow).toContain("darwin-x64")
+    expect(workflow).toContain("linux-x64")
+    expect(workflow).toContain("win32-arm64")
+    expect(workflow).toContain("win32-x64")
+    expect(workflow).toContain("installer-clean-machine-receipt-${{ matrix.target }}")
+    expect(workflow).toContain("github_hosted_runner_disposable")
+    expect(workflow).not.toMatch(/rebootRecovery\s*[:=]\s*['"]?true/iu)
+  })
 })

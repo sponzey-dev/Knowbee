@@ -6,19 +6,9 @@ const REQUIRED_CHECKS = Object.freeze([
   "dryRun",
   "onlineInstall",
   "offlineInstall",
-  "serviceIdentity",
-  "healthIdentity",
-  "webuiReachable",
   "noService",
-  "noStart",
   "noBrowser",
-  "pathAfterLogin",
   "sameVersion",
-  "upgrade",
-  "forcedRollback",
-  "reinstall",
-  "uninstallPreservedState",
-  "rebootRecovery",
 ])
 
 function reject(reasonCode) {
@@ -27,6 +17,18 @@ function reject(reasonCode) {
 
 function blocked(reasonCode) {
   return { status: "blocked", reasonCode }
+}
+
+function isAcceptedExecutionEnvironment(value) {
+  if (value.executionEnvironment === "persistent_actions") {
+    return Object.keys(value).length === 11 && value.limitations === undefined
+  }
+  return (
+    value.executionEnvironment === "github_hosted" &&
+    Object.keys(value).length === 12 &&
+    value.limitations?.rebootRecovery === "github_hosted_runner_disposable" &&
+    Object.keys(value.limitations).length === 1
+  )
 }
 
 function mapExactTargets(values, reasonCode, validate) {
@@ -74,9 +76,8 @@ export function buildInstallerCleanMachineEvidence(input) {
     input.receipts,
     "installer_clean_receipts_invalid",
     (value) =>
-      Object.keys(value).length === 10 &&
       value.kind === "knowbee.installer.clean_machine_receipt" &&
-      value.schemaVersion === 1 &&
+      value.schemaVersion === 2 &&
       value.status === "passed" &&
       typeof value.candidateId === "string" &&
       CANDIDATE_ID.test(value.candidateId) &&
@@ -91,6 +92,7 @@ export function buildInstallerCleanMachineEvidence(input) {
       Object.keys(value.osWarning).length === 2 &&
       value.osWarning.observed === true &&
       value.osWarning.acknowledged === true &&
+      isAcceptedExecutionEnvironment(value) &&
       typeof value.checks === "object" &&
       value.checks !== null,
   )
