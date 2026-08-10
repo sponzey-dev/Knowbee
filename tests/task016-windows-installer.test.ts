@@ -107,6 +107,11 @@ describe("task016 Windows installer", () => {
     expect(template).toContain("MaximumBytes")
     expect(template).toContain("PSNativeCommandUseErrorActionPreference")
     expect(template).toContain("install_application_failed")
+    expect(template).toContain(
+      "Start-Process -FilePath $EntryPointPath -ArgumentList $ApplyArguments -Wait -PassThru -NoNewWindow",
+    )
+    expect(template).toContain("$Application.ExitCode")
+    expect(template).not.toContain("& $EntryPointPath @ApplyArguments")
     expect(template.match(/Read-Host/gu)).toHaveLength(1)
     expect(template).not.toMatch(/Invoke-Expression|Set-ExecutionPolicy|cmd\.exe|npm|pnpm/iu)
 

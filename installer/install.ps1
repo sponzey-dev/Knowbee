@@ -375,8 +375,10 @@ try {
   if (-not $Options.AddPath) { $ApplyArguments += "--no-add-path" }
   if (-not $Options.Browser) { $ApplyArguments += "--no-browser" }
   if ($Options.Json) { $ApplyArguments += "--json" }
-  & $EntryPointPath @ApplyArguments
-  if ($LASTEXITCODE -ne 0) {
+  # The staged Windows entrypoint is a .cmd file. Start it as a child process so
+  # both Windows PowerShell 5.1 and PowerShell 7 observe its exit code directly.
+  $Application = Start-Process -FilePath $EntryPointPath -ArgumentList $ApplyArguments -Wait -PassThru -NoNewWindow
+  if ($Application.ExitCode -ne 0) {
     Stop-Installer "install_application_failed"
   }
   if (-not $Options.Json) { Write-Host "Knowbee installation completed: target=$Target release=$($Receipt['release_version'])" }
