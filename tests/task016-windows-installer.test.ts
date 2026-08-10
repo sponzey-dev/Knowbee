@@ -112,6 +112,8 @@ describe("task016 Windows installer", () => {
     )
     expect(template).toContain("$Application.ExitCode")
     expect(template).not.toContain("& $EntryPointPath @ApplyArguments")
+    expect(template).toContain("reasonCode")
+    expect(template).toContain("Read-EmbeddedInstallerReason")
     expect(template.match(/Read-Host/gu)).toHaveLength(1)
     expect(template).not.toMatch(/Invoke-Expression|Set-ExecutionPolicy|cmd\.exe|npm|pnpm/iu)
 

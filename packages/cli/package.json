@@ -1,6 +1,6 @@
 {
   "name": "@knowbee/cli",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "type": "module",
   "bin": {
     "knowbee": "./dist/launcher.js",

@@ -18,6 +18,13 @@ function Stop-Installer {
   throw [InvalidOperationException]::new($Reason)
 }
 
+function Read-EmbeddedInstallerReason {
+  param([Parameter(Mandatory = $true)][string]$Message)
+  $Match = [regex]::Match($Message, '"reasonCode"\s*:\s*"([a-z0-9_.:-]{1,160})"')
+  if ($Match.Success) { return $Match.Groups[1].Value }
+  return $null
+}
+
 function Read-InstallerOptions {
   param([Parameter(Mandatory = $true)][object[]]$Values)
   $Seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
@@ -385,7 +392,10 @@ try {
 }
 catch {
   $ReasonCode = $_.Exception.Message
-  if ($ReasonCode -notmatch "^[a-z0-9_.:-]{1,160}$") { $ReasonCode = "installer_failed" }
+  if ($ReasonCode -notmatch "^[a-z0-9_.:-]{1,160}$") {
+    $ReasonCode = Read-EmbeddedInstallerReason $ReasonCode
+    if ($null -eq $ReasonCode) { $ReasonCode = "installer_failed" }
+  }
   if ($JsonRequested) {
     [Console]::Error.WriteLine((@{ status = "rejected"; reasonCode = $ReasonCode } | ConvertTo-Json -Compress))
   }
