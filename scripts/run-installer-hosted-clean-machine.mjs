@@ -6,6 +6,7 @@ import { homedir, platform, tmpdir } from "node:os"
 import { basename, join, resolve } from "node:path"
 import { promisify } from "node:util"
 
+import { installerFailureReason } from "./lib/installer-hosted-clean-machine-diagnostics.mjs"
 import { HOSTED_CLEAN_MACHINE_REQUIRED_CHECKS } from "./lib/installer-hosted-clean-machine-receipt.mjs"
 
 const execFile = promisify(execFileCallback)
@@ -136,25 +137,6 @@ function parseDryRun(output) {
   }
 }
 
-function installerReason(output) {
-  const reasonCodes = output
-    .split(/\r?\n/u)
-    .flatMap((line) => {
-      try {
-        const value = JSON.parse(line)
-        return typeof value?.reasonCode === "string" && /^[a-z0-9_.:-]{1,160}$/u.test(value.reasonCode)
-          ? [value.reasonCode]
-          : []
-      } catch {
-        return []
-      }
-    })
-    .filter((reasonCode) => reasonCode !== "installer_failed")
-  if (reasonCodes.length > 0) return reasonCodes.at(-1)
-  const matches = output.match(/installer_[a-z0-9_:-]{1,160}/gu)
-  return matches?.at(-1) ?? "unknown"
-}
-
 async function main() {
   const config = readConfig({ ...process.env })
   if (config.status !== "ready") return config
@@ -205,7 +187,7 @@ async function main() {
               ? sameVersion.output
               : dryRun.output
       return reject(
-        `installer_hosted_clean_lifecycle_failed:${failedCheck}:${installerReason(failedOutput)}`,
+        `installer_hosted_clean_lifecycle_failed:${failedCheck}:${installerFailureReason(failedOutput)}`,
       )
     }
     const warningObserved = online.output.includes("unsigned_origin_unverified")

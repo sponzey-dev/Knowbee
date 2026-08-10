@@ -4,6 +4,7 @@ import {
   buildHostedCleanMachineReceipt,
   HOSTED_CLEAN_MACHINE_REQUIRED_CHECKS,
 } from "../scripts/lib/installer-hosted-clean-machine-receipt.mjs"
+import { installerFailureReason } from "../scripts/lib/installer-hosted-clean-machine-diagnostics.mjs"
 
 const input = {
   target: "linux-x64",
@@ -38,5 +39,14 @@ describe("task029 hosted clean-machine receipt", () => {
         checks: { ...input.checks, onlineInstall: false },
       }),
     ).toEqual({ status: "rejected", reasonCode: "installer_hosted_clean_receipt_invalid" })
+  })
+
+  it("preserves only the bounded Windows field-debug exception class when the bootstrap result is generic", () => {
+    expect(
+      installerFailureReason(
+        '{"status":"rejected","reasonCode":"installer_failed"}\nKnowbee installer field-debug exception-type=Win32Exception',
+      ),
+    ).toBe("installer_failed:win32exception")
+    expect(installerFailureReason('raw path=C:\\Users\\Bee\\secret-token')).toBe("unknown")
   })
 })

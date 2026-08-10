@@ -1,6 +1,6 @@
 {
   "name": "@knowbee/webui",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "type": "module",
   "files": [
     "dist"
