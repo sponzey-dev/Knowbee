@@ -12,6 +12,7 @@ $VerifierSha256Win32Arm64 = "@@VERIFIER_SHA256_WIN32_ARM64@@"
 $VerifierSha256Win32X64 = "@@VERIFIER_SHA256_WIN32_X64@@"
 $TemporaryDirectory = $null
 $JsonRequested = $args -contains "--json"
+$FieldDebugRequested = $env:KNOWBEE_INSTALLER_FIELD_DEBUG -eq "1"
 
 function Stop-Installer {
   param([Parameter(Mandatory = $true)][string]$Reason)
@@ -401,6 +402,9 @@ catch {
   }
   else {
     [Console]::Error.WriteLine("Knowbee installer stopped: " + $ReasonCode)
+  }
+  if ($FieldDebugRequested) {
+    [Console]::Error.WriteLine("Knowbee installer field-debug exception-type=" + $_.Exception.GetType().Name)
   }
   exit 1
 }

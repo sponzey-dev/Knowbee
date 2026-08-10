@@ -114,6 +114,8 @@ describe("task016 Windows installer", () => {
     expect(template).not.toContain("& $EntryPointPath @ApplyArguments")
     expect(template).toContain("reasonCode")
     expect(template).toContain("Read-EmbeddedInstallerReason")
+    expect(template).toContain("KNOWBEE_INSTALLER_FIELD_DEBUG")
+    expect(template).toContain("field-debug exception-type")
     expect(template.match(/Read-Host/gu)).toHaveLength(1)
     expect(template).not.toMatch(/Invoke-Expression|Set-ExecutionPolicy|cmd\.exe|npm|pnpm/iu)
 
