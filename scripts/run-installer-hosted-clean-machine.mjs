@@ -137,6 +137,20 @@ function parseDryRun(output) {
 }
 
 function installerReason(output) {
+  const reasonCodes = output
+    .split(/\r?\n/u)
+    .flatMap((line) => {
+      try {
+        const value = JSON.parse(line)
+        return typeof value?.reasonCode === "string" && /^[a-z0-9_.:-]{1,160}$/u.test(value.reasonCode)
+          ? [value.reasonCode]
+          : []
+      } catch {
+        return []
+      }
+    })
+    .filter((reasonCode) => reasonCode !== "installer_failed")
+  if (reasonCodes.length > 0) return reasonCodes.at(-1)
   const matches = output.match(/installer_[a-z0-9_:-]{1,160}/gu)
   return matches?.at(-1) ?? "unknown"
 }
