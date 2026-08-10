@@ -1,6 +1,11 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
+# PowerShell 7 can turn a native child's nonzero exit into a terminating error before
+# the bootstrap can preserve its structured installer result. PowerShell 5.1 lacks this variable.
+if ($PSVersionTable.PSVersion.Major -ge 7) {
+  $PSNativeCommandUseErrorActionPreference = $false
+}
 
 $RepositoryUri = [Uri]"https://github.com/Sponzey-com/Sponzey-Knowbee"
 $VerifierSha256Win32Arm64 = "@@VERIFIER_SHA256_WIN32_ARM64@@"
