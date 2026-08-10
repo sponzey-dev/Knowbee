@@ -60,10 +60,11 @@ afterEach(() => {
 describe("npm install packaging", () => {
   it("defines a publishable Knowbee meta package with the knowbee binary", () => {
     const packageJson = readJson("packages/knowbee/package.json")
+    const workspacePackage = readJson("package.json")
 
     expect(packageJson).toMatchObject({
       name: "@sponzey/knowbee",
-      version: "0.3.1",
+      version: workspacePackage.version,
       type: "module",
     })
     expect(packageJson.private).not.toBe(true)
