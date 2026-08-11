@@ -108,7 +108,7 @@ function Test-TrustedDownloadUri {
   Stop-Installer "download_redirect_untrusted"
 }
 
-function Get-ReleaseAsset {
+function Get-ReleaseAssetWithHttpClient {
   param(
     [Parameter(Mandatory = $true)][Uri]$Uri,
     [Parameter(Mandatory = $true)][string]$Destination,
@@ -181,6 +181,86 @@ function Get-ReleaseAsset {
   finally {
     $Client.Dispose()
     $Handler.Dispose()
+  }
+}
+
+function Get-ReleaseAssetWithHttpWebRequest {
+  param(
+    [Parameter(Mandatory = $true)][Uri]$Uri,
+    [Parameter(Mandatory = $true)][string]$Destination,
+    [Parameter(Mandatory = $true)][long]$MaximumBytes
+  )
+  if ($MaximumBytes -le 0) { Stop-Installer "download_size_invalid" }
+
+  $CurrentUri = $Uri
+  for ($RedirectCount = 0; $RedirectCount -le 5; $RedirectCount++) {
+    Test-TrustedDownloadUri $CurrentUri
+    $Request = [Net.WebRequest]::CreateHttp($CurrentUri)
+    $Request.AllowAutoRedirect = $false
+    $Request.Timeout = 300000
+    $Request.ReadWriteTimeout = 300000
+    $Request.UserAgent = "Sponzey-Knowbee-Installer/1"
+    $Response = $null
+    try {
+      try {
+        $Response = [Net.HttpWebResponse]$Request.GetResponse()
+      }
+      catch [Net.WebException] {
+        if ($null -eq $_.Exception.Response) { throw }
+        $Response = [Net.HttpWebResponse]$_.Exception.Response
+      }
+      $StatusCode = [int]$Response.StatusCode
+      if ($StatusCode -ge 300 -and $StatusCode -lt 400) {
+        if ($RedirectCount -eq 5 -or [string]::IsNullOrEmpty($Response.Headers["Location"])) {
+          Stop-Installer "download_redirect_invalid"
+        }
+        $Location = [Uri]::new($CurrentUri, $Response.Headers["Location"])
+        Test-TrustedDownloadUri $Location
+        $CurrentUri = $Location
+        continue
+      }
+      if ($StatusCode -lt 200 -or $StatusCode -ge 300) { Stop-Installer "download_failed" }
+      if ($Response.ContentLength -gt $MaximumBytes) { Stop-Installer "download_oversized" }
+      $InputStream = $Response.GetResponseStream()
+      $OutputStream = [IO.File]::Open($Destination, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+      try {
+        $Buffer = [byte[]]::new(65536)
+        [long]$TotalBytes = 0
+        while (($Read = $InputStream.Read($Buffer, 0, $Buffer.Length)) -gt 0) {
+          $TotalBytes += $Read
+          if ($TotalBytes -gt $MaximumBytes) { Stop-Installer "download_oversized" }
+          $OutputStream.Write($Buffer, 0, $Read)
+        }
+        $OutputStream.Flush()
+        if ($TotalBytes -eq 0) { Stop-Installer "download_empty" }
+      }
+      finally {
+        $OutputStream.Dispose()
+        $InputStream.Dispose()
+      }
+      return
+    }
+    finally {
+      if ($null -ne $Response) { $Response.Dispose() }
+    }
+  }
+  Stop-Installer "download_redirect_invalid"
+}
+
+function Get-ReleaseAsset {
+  param(
+    [Parameter(Mandatory = $true)][Uri]$Uri,
+    [Parameter(Mandatory = $true)][string]$Destination,
+    [Parameter(Mandatory = $true)][long]$MaximumBytes
+  )
+  try {
+    Get-ReleaseAssetWithHttpClient $Uri $Destination $MaximumBytes
+    return
+  }
+  catch [InvalidOperationException] { throw }
+  catch {
+    if ([IO.File]::Exists($Destination)) { [IO.File]::Delete($Destination) }
+    Get-ReleaseAssetWithHttpWebRequest $Uri $Destination $MaximumBytes
   }
 }
 

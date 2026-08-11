@@ -104,6 +104,8 @@ describe("task016 Windows installer", () => {
     expect(template).toContain("-lt 22000")
     expect(template).toContain("Tls12")
     expect(template).toContain("HttpCompletionOption]::ResponseHeadersRead")
+    expect(template).toContain("Get-ReleaseAssetWithHttpWebRequest")
+    expect(template).toContain("catch [InvalidOperationException]")
     expect(template).toContain("MaximumBytes")
     expect(template).toContain("PSNativeCommandUseErrorActionPreference")
     expect(template).toContain("install_application_failed")
