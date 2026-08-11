@@ -118,6 +118,54 @@ Sub-agent support is being built around explicit contracts rather than hidden ex
 - `pnpm@8.10.2`
 - Rust / Cargo if running Yeonjang from source
 
+### Signed installer lifecycle (release candidate)
+
+The signed installer owns only its versioned runtime, stable launcher, per-user service and
+installer receipts. After installation, `knowbee uninstall` removes those owned resources while
+preserving `~/.knowbee` configuration and user state. `knowbee uninstall --purge` is the only
+form that also deletes that state. Unknown lifecycle flags fail before the service or filesystem
+is changed. These commands become the public fast path only after the native clean-machine and
+release-signing gates in the release runbook pass; the source-workspace steps below remain the
+currently published setup path until then.
+
+The candidate bootstrap has one closed option contract on POSIX and Windows:
+
+```text
+--version VERSION                 exact release or latest
+--with-yeonjang                  require the signed exact-target optional package; request no OS permission
+--no-service | --no-start        omit registration, or register without starting
+--non-interactive                run the approved profile without a prompt
+--add-path | --no-add-path       manage, or leave unchanged, the per-user CLI PATH
+--dry-run                        host/profile projection only; no download or mutation
+--json                           bounded JSON; mutation also requires --non-interactive
+--manifest PATH --bundle-dir DIR offline signed evidence pair; no network fallback
+--no-browser                     do not open the local WebUI after health succeeds
+--locale auto|en|ko              installer message locale
+--help                           print usage without mutation
+```
+
+Offline installation uses the same externally signed manifest, detached signature, pinned native
+verifier digest and exact bundle as online installation. Yeonjang launch remains deferred until
+Knowbee initialization supplies authenticated transport configuration; installation never prompts
+for camera, screen or input permission.
+
+The tag workflow stops after creating five deterministic bundle candidates and a payload-free
+external signing request. Only the protected finalizer can render and upload installer scripts,
+and only to a prerelease after signature, native verifier, OS trust, dry-run and previous-version
+rollback receipts all match the same candidate. Stable/latest promotion remains a separate human
+release decision.
+
+After that protected promotion has completed, these are the public one-command entry points. They
+are documented here as the target fast path, not as the currently released setup path:
+
+```bash
+curl -fsSL --proto '=https' --tlsv1.2 https://github.com/Sponzey-com/Sponzey-Knowbee/releases/latest/download/install.sh | bash
+```
+
+```powershell
+& ([scriptblock]::Create((irm https://github.com/Sponzey-com/Sponzey-Knowbee/releases/latest/download/install.ps1)))
+```
+
 ### Step 1. Prepare a supported Node.js version
 
 ```bash

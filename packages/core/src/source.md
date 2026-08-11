@@ -66,6 +66,7 @@
 - `api`: WebUI와 로컬 제어용 HTTP/WebSocket 표면
 - `channels`: 외부 메시징 연동, 현재는 Telegram 중심
 - `mqtt`, `yeonjang`: 브로커와 확장 통신
+- `release`: 릴리스 패키지와 설치·복구 evidence의 순수 계약. 상세 인덱스는 `release/source.md`를 따른다.
 
 ## 메모
 

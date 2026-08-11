@@ -118,6 +118,52 @@ Yeonjang은 Knowbee가 사용자의 기기, 화면, 키보드, 마우스, 카메
 - `pnpm@8.10.2`
 - Yeonjang을 소스에서 실행하려면 Rust / Cargo
 
+### 서명 설치기 수명주기(릴리스 후보)
+
+서명 설치기는 versioned runtime, stable launcher, 사용자 서비스와 installer receipt만
+소유합니다. 설치 후 `knowbee uninstall`은 이 설치기 소유 항목만 제거하고 `~/.knowbee`의
+설정과 사용자 상태는 보존합니다. 이 상태까지 삭제하는 명령은 명시적인
+`knowbee uninstall --purge`뿐입니다. 알 수 없는 lifecycle flag는 서비스나 파일시스템을
+바꾸기 전에 실패합니다. 이 명령은 release runbook의 native clean-machine 및 release
+signing gate가 통과한 뒤에만 공개 fast path가 되며, 그전까지는 아래 source workspace
+절차가 현재 게시된 설치 경로입니다.
+
+후보 bootstrap은 POSIX와 Windows에서 하나의 closed option 계약을 사용합니다.
+
+```text
+--version VERSION                 exact release 또는 latest
+--with-yeonjang                  서명된 exact-target 선택 package 필수, OS 권한은 요청하지 않음
+--no-service | --no-start        서비스를 등록하지 않거나, 등록만 하고 시작하지 않음
+--non-interactive                확인 prompt 없이 승인된 profile 실행
+--add-path | --no-add-path       사용자 CLI PATH를 관리하거나 변경하지 않음
+--dry-run                        host/profile 투영만 수행, download와 mutation 없음
+--json                           제한된 JSON 출력, mutation 시 --non-interactive도 필수
+--manifest PATH --bundle-dir DIR offline 서명 evidence 쌍, network fallback 없음
+--no-browser                     health 성공 후 로컬 WebUI를 열지 않음
+--locale auto|en|ko              installer 메시지 locale
+--help                           변경 없이 usage 출력
+```
+
+Offline 설치도 online과 같은 외부 서명 manifest, detached signature, 고정 native verifier
+digest와 exact bundle을 사용합니다. Yeonjang 실행은 Knowbee 초기화가 인증 transport 설정을
+만든 뒤까지 보류되며 installer는 camera, screen, input 권한을 자동 요청하지 않습니다.
+
+태그 workflow는 다섯 deterministic bundle 후보와 payload 없는 외부 서명 요청까지만
+만듭니다. 보호된 finalizer만 installer script를 render하고 prerelease에 올릴 수 있으며,
+서명·native verifier·OS trust·dry-run·이전 버전 rollback receipt가 모두 같은 candidate와
+일치해야 합니다. stable/latest 승격은 별도의 사람 승인으로 남습니다.
+
+그 보호된 승격까지 완료된 뒤 사용할 공개 one-line 명령은 아래와 같습니다. 현재 배포된
+설치 경로라는 뜻이 아니라, 모든 release gate를 통과한 뒤 활성화할 목표 fast path입니다.
+
+```bash
+curl -fsSL --proto '=https' --tlsv1.2 https://github.com/Sponzey-com/Sponzey-Knowbee/releases/latest/download/install.sh | bash
+```
+
+```powershell
+& ([scriptblock]::Create((irm https://github.com/Sponzey-com/Sponzey-Knowbee/releases/latest/download/install.ps1)))
+```
+
 ### 1단계. 지원되는 Node.js 버전 준비
 
 ```bash

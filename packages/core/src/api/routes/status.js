@@ -6,6 +6,7 @@ import { loadPromptSourceRegistry } from "../../memory/knowbee-md.js";
 import { getMqttBrokerSnapshot, getMqttExtensionSnapshots } from "../../mqtt/broker.js";
 import { getFastResponseHealthSnapshot } from "../../observability/latency.js";
 import { resolveOrchestrationModeSnapshotSync } from "../../orchestration/mode.js";
+import { buildInstallerHealthIdentity } from "../../release/installer-health.js";
 import { getLastStartupRecoverySummary } from "../../runs/startup-recovery.js";
 import { getGatewayProcessStartTimeMs, getRuntimeBuildStatus } from "../../runtime/build-status.js";
 import { getGatewayReadinessSnapshot } from "../../runtime/gateway-readiness.js";
@@ -61,14 +62,21 @@ function getPromptSourceSnapshot() {
 }
 export function registerStatusRoute(app, options) {
     const { updateRuntime, ...capabilityOptions } = options;
-    app.get("/api/health", async () => ({
-        ok: true,
-        service: "knowbee-gateway",
-        status: "live",
-        runtime: {
-            pid: process.pid,
-        },
-    }));
+    app.get("/api/health", async (request) => {
+        const runtimePaths = getApiRuntimePaths(request);
+        return {
+            ok: true,
+            service: "knowbee-gateway",
+            status: "live",
+            runtime: {
+                pid: process.pid,
+            },
+            installIdentity: buildInstallerHealthIdentity({
+                releaseVersion: getCurrentDisplayVersion(),
+                stateDirectory: runtimePaths.stateDir,
+            }),
+        };
+    });
     app.get("/api/ready", async (_req, reply) => {
         const readiness = getGatewayReadinessSnapshot();
         const body = {

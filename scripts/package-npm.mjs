@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execFileSync } from "node:child_process"
 import {
   chmodSync,
   cpSync,
@@ -9,19 +10,13 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs"
-import { execFileSync } from "node:child_process"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
+import { INSTALLER_NODE_RUNTIME, INSTALLER_PLATFORM_PROFILES } from "./lib/installer-platforms.mjs"
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = resolve(__dirname, "..")
-
-const YEONJANG_OPTIONAL_PACKAGES = [
-  "@sponzey/yeonjang-darwin-arm64",
-  "@sponzey/yeonjang-darwin-x64",
-  "@sponzey/yeonjang-linux-x64",
-  "@sponzey/yeonjang-win32-x64",
-]
 
 function parseArgs(argv) {
   const options = {
@@ -97,7 +92,7 @@ function copyMetaPackage(outputDir, version) {
   const sourceDir = join(rootDir, "packages", "knowbee")
   const sourcePackage = readJson(join(sourceDir, "package.json"))
   const optionalDependencies = Object.fromEntries(
-    YEONJANG_OPTIONAL_PACKAGES.map((name) => [name, version]),
+    INSTALLER_PLATFORM_PROFILES.map((profile) => [profile.yeonjangPackage, version]),
   )
   const targetDir = stagePackageDir(outputDir, "knowbee", {
     ...sourcePackage,
@@ -152,6 +147,13 @@ function main() {
     replacements: [["@knowbee/core", "@sponzey/core"]],
   })
   const targetDir = copyMetaPackage(options.outputDir, version)
+  writeJson(join(options.outputDir, "installer-package-inventory.json"), {
+    schemaId: "knowbee.installer.package-inventory.v1",
+    schemaVersion: 1,
+    packageVersion: version,
+    node: INSTALLER_NODE_RUNTIME,
+    profiles: INSTALLER_PLATFORM_PROFILES,
+  })
   console.log(`Knowbee npm package staged: ${targetDir}`)
 }
 
