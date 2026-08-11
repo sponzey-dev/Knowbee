@@ -397,8 +397,15 @@ catch {
     $ReasonCode = Read-EmbeddedInstallerReason $ReasonCode
     if ($null -eq $ReasonCode) { $ReasonCode = "installer_failed" }
   }
-  if ($JsonRequested) {
-    [Console]::Error.WriteLine((@{ status = "rejected"; reasonCode = $ReasonCode } | ConvertTo-Json -Compress))
+  $ErrorResult = @{ status = "rejected"; reasonCode = $ReasonCode }
+  if ($FieldDebugRequested) {
+    $ErrorResult.fieldDebug = @{ exceptionType = $_.Exception.GetType().Name }
+    # The hosted clean-machine observer intentionally captures stdout. Keep this
+    # bounded diagnostic structured and opt-in; no message, path, or payload escapes.
+    [Console]::Out.WriteLine(($ErrorResult | ConvertTo-Json -Compress))
+  }
+  elseif ($JsonRequested) {
+    [Console]::Error.WriteLine(($ErrorResult | ConvertTo-Json -Compress))
   }
   else {
     [Console]::Error.WriteLine("Knowbee installer stopped: " + $ReasonCode)

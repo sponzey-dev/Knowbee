@@ -8,22 +8,26 @@ const FIELD_DEBUG_EXCEPTION = /^Knowbee installer field-debug exception-type=([A
  */
 export function installerFailureReason(output) {
   const lines = output.split(/\r?\n/u)
-  const reasonCodes = lines
+  const results = lines
     .flatMap((line) => {
       try {
         const value = JSON.parse(line)
         return typeof value?.reasonCode === "string" && REASON_CODE.test(value.reasonCode)
-          ? [value.reasonCode]
+          ? [value]
           : []
       } catch {
         return []
       }
     })
+  const reasonCodes = results.map((value) => value.reasonCode)
 
   const reasonCode = reasonCodes.findLast((value) => value !== "installer_failed")
   if (reasonCode) return reasonCode
 
-  const exception = lines
+  const exception = results
+    .map((value) => value.fieldDebug?.exceptionType)
+    .findLast((value) => typeof value === "string" && /^[A-Za-z][A-Za-z0-9.]{0,120}$/u.test(value))
+    ?? lines
     .map((line) => FIELD_DEBUG_EXCEPTION.exec(line)?.[1])
     .findLast((value) => typeof value === "string")
   if (reasonCodes.includes("installer_failed") && exception) {

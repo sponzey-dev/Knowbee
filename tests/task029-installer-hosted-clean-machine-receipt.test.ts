@@ -44,7 +44,7 @@ describe("task029 hosted clean-machine receipt", () => {
   it("preserves only the bounded Windows field-debug exception class when the bootstrap result is generic", () => {
     expect(
       installerFailureReason(
-        '{"status":"rejected","reasonCode":"installer_failed"}\nKnowbee installer field-debug exception-type=Win32Exception',
+        '{"status":"rejected","reasonCode":"installer_failed","fieldDebug":{"exceptionType":"Win32Exception"}}',
       ),
     ).toBe("installer_failed:win32exception")
     expect(installerFailureReason('raw path=C:\\Users\\Bee\\secret-token')).toBe("unknown")
