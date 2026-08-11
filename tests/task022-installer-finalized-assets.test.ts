@@ -136,6 +136,7 @@ describe("task022 finalized installer assets", () => {
     expect(workflow).toContain("installer_finalized_workflow_failed")
     expect(workflow).toContain("release/candidate/bundles/installer-bundle-${value.target}/${value.name}")
     expect(workflow).not.toContain("find release/candidate/bundles -type f")
+    expect(workflow).not.toContain("${value.name}\\\\n")
     expect(workflow).not.toMatch(/gh release upload[\s\S]*finalized_assets/iu)
     expect(workflow).not.toContain("--clobber")
   })
