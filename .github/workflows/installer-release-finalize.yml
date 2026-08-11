@@ -74,13 +74,18 @@ jobs:
           cp "${bundle_assets[@]}" release/finalized-assets/
           cp "${verifier_assets[@]}" release/finalized-assets/
           candidate_id="$(node -e 'const fs=require("node:fs"); const value=JSON.parse(fs.readFileSync(process.argv[1], "utf8")); process.stdout.write(value.candidateId)' release/final-installer/installer-release-gate.json)"
+          set +e
           node scripts/collect-installer-finalized-assets.mjs collect \
             --candidate-id "$candidate_id" \
             --release-tag "$RELEASE_TAG" \
             --asset-root release/finalized-assets \
             --artifact-receipts release/candidate/receipts/artifact-receipts.json \
             --verifier-receipts release/candidate/receipts/verifier-receipts.json \
-            --output-dir release/finalized-inventory
+            --output-dir release/finalized-inventory > release/finalized-inventory-result.log 2>&1
+          collect_status=$?
+          set -e
+          cat release/finalized-inventory-result.log
+          test "$collect_status" -eq 0
       - name: Verify rehearsal bytes and add immutable final metadata
         shell: bash
         env:

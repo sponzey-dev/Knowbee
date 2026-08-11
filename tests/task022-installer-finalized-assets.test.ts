@@ -126,6 +126,8 @@ describe("task022 finalized installer assets", () => {
     expect(workflow).toContain('cmp --silent "$asset" "release/published-rehearsal-assets/$name"')
     expect(workflow).toContain("installer-finalized-assets.json")
     expect(workflow).toContain("installer-release-gate.json")
+    expect(workflow).toContain("release/finalized-inventory-result.log")
+    expect(workflow).toContain('cat release/finalized-inventory-result.log')
     expect(workflow).not.toMatch(/gh release upload[\s\S]*finalized_assets/iu)
     expect(workflow).not.toContain("--clobber")
   })
