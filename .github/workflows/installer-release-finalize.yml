@@ -64,18 +64,28 @@ jobs:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
+          finalization_stage=asset_directory
+          trap 'printf "{\"status\":\"rejected\",\"reasonCode\":\"installer_finalized_workflow_failed:%s\"}\\n" "$finalization_stage" > release/finalized-inventory-result.log' ERR
           mkdir -p release/finalized-assets
+          finalization_stage=fixed_asset_copy
           cp release/final-installer/install.sh release/finalized-assets/
           cp release/final-installer/install.ps1 release/finalized-assets/
           cp release/final-installer/installer-manifest.json release/finalized-assets/
           cp release/final-installer/installer-release-gate.json release/finalized-assets/
+          finalization_stage=bundle_discovery
           mapfile -t bundle_assets < <(find release/candidate/bundles -type f \( -name '*.tar.gz' -o -name '*.zip' \) | sort)
+          finalization_stage=verifier_discovery
           mapfile -t verifier_assets < <(find release/candidate/verifiers -type f -name 'knowbee-installer-verify-*' | sort)
+          finalization_stage=bundle_count
           test "${#bundle_assets[@]}" -eq 5
+          finalization_stage=verifier_count
           test "${#verifier_assets[@]}" -eq 5
+          finalization_stage=asset_copy
           cp "${bundle_assets[@]}" release/finalized-assets/
           cp "${verifier_assets[@]}" release/finalized-assets/
+          finalization_stage=candidate_identity
           candidate_id="sha256:$(sha256sum release/final-installer/installer-manifest.json | awk '{print $1}')"
+          finalization_stage=inventory_collect
           set +e
           node --input-type=module --eval '
             import { runInstallerFinalizedAssetsCli } from "./scripts/collect-installer-finalized-assets.mjs"

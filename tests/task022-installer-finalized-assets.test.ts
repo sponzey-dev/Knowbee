@@ -133,6 +133,7 @@ describe("task022 finalized installer assets", () => {
     expect(workflow).toContain("sha256sum release/final-installer/installer-manifest.json")
     expect(workflow).toContain("installer-finalized-inventory-diagnostic-${{ inputs.release_tag }}")
     expect(workflow).toContain("continue-on-error: true")
+    expect(workflow).toContain("installer_finalized_workflow_failed")
     expect(workflow).not.toMatch(/gh release upload[\s\S]*finalized_assets/iu)
     expect(workflow).not.toContain("--clobber")
   })
