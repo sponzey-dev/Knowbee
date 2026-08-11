@@ -3,7 +3,8 @@ const FIELD_DEBUG_EXCEPTION = /^Knowbee installer field-debug exception-type=([A
 const FIELD_DEBUG_PHASES = new Set([
   "host_preflight",
   "offline_inputs",
-  "bootstrap_assets",
+  "manifest_download",
+  "verifier_download",
   "manifest_verification",
   "artifact_download",
   "artifact_verification",
@@ -46,9 +47,16 @@ export function installerFailureReason(output) {
     .findLast((value) => typeof value === "string")
   if (reasonCodes.includes("installer_failed") && exception) {
     const phase = debugResult?.phase
-    return typeof phase === "string" && FIELD_DEBUG_PHASES.has(phase)
-      ? `installer_failed:${exception.toLowerCase()}:${phase}`
-      : `installer_failed:${exception.toLowerCase()}`
+    const innerExceptionType = debugResult?.innerExceptionType
+    const result = ["installer_failed", exception.toLowerCase()]
+    if (typeof phase === "string" && FIELD_DEBUG_PHASES.has(phase)) result.push(phase)
+    if (
+      typeof innerExceptionType === "string" &&
+      /^[A-Za-z][A-Za-z0-9.]{0,120}$/u.test(innerExceptionType)
+    ) {
+      result.push(innerExceptionType.toLowerCase())
+    }
+    return result.join(":")
   }
 
   const matches = output.match(/installer_[a-z0-9_:-]{1,160}/gu)

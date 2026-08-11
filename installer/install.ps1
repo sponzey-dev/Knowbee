@@ -336,8 +336,9 @@ try {
     Copy-LocalAsset (Join-Path $BundleItem.FullName "knowbee-installer-verify-$Target.exe") $VerifierPath 67108864
   }
   else {
-    $CurrentPhase = "bootstrap_assets"
+    $CurrentPhase = "manifest_download"
     Get-ReleaseAsset ([Uri]::new($ReleaseBase, "installer-manifest.json")) $ManifestPath 2097152
+    $CurrentPhase = "verifier_download"
     Get-ReleaseAsset ([Uri]::new($ReleaseBase, "knowbee-installer-verify-$Target.exe")) $VerifierPath 67108864
   }
   if ((Get-FileSha256 $VerifierPath) -cne $VerifierSha256) {
@@ -407,7 +408,11 @@ catch {
   }
   $ErrorResult = @{ status = "rejected"; reasonCode = $ReasonCode }
   if ($FieldDebugRequested) {
-    $ErrorResult.fieldDebug = @{ exceptionType = $_.Exception.GetType().Name; phase = $CurrentPhase }
+    $FieldDebug = @{ exceptionType = $_.Exception.GetType().Name; phase = $CurrentPhase }
+    if ($null -ne $_.Exception.InnerException) {
+      $FieldDebug.innerExceptionType = $_.Exception.InnerException.GetType().Name
+    }
+    $ErrorResult.fieldDebug = $FieldDebug
     # The hosted clean-machine observer intentionally captures stdout. Keep this
     # bounded diagnostic structured and opt-in; no message, path, or payload escapes.
     [Console]::Out.WriteLine(($ErrorResult | ConvertTo-Json -Compress))
