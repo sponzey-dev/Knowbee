@@ -13,6 +13,7 @@ $VerifierSha256Win32X64 = "@@VERIFIER_SHA256_WIN32_X64@@"
 $TemporaryDirectory = $null
 $JsonRequested = $args -contains "--json"
 $FieldDebugRequested = $env:KNOWBEE_INSTALLER_FIELD_DEBUG -eq "1"
+$CurrentPhase = "host_preflight"
 
 function Stop-Installer {
   param([Parameter(Mandatory = $true)][string]$Reason)
@@ -326,6 +327,7 @@ try {
   $ReceiptPath = Join-Path $TemporaryDirectory "verified-receipt"
   $ReleaseBase = [Uri]::new($RepositoryUri, "/Sponzey-com/Sponzey-Knowbee/releases/$ReleasePath/")
   if ($null -ne $Options.ManifestPath) {
+    $CurrentPhase = "offline_inputs"
     $BundleItem = Get-Item -LiteralPath $Options.BundleDirectory -Force -ErrorAction Stop
     if ($BundleItem -isnot [IO.DirectoryInfo] -or ($BundleItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
       Stop-Installer "offline_bundle_directory_unsafe"
@@ -334,6 +336,7 @@ try {
     Copy-LocalAsset (Join-Path $BundleItem.FullName "knowbee-installer-verify-$Target.exe") $VerifierPath 67108864
   }
   else {
+    $CurrentPhase = "bootstrap_assets"
     Get-ReleaseAsset ([Uri]::new($ReleaseBase, "installer-manifest.json")) $ManifestPath 2097152
     Get-ReleaseAsset ([Uri]::new($ReleaseBase, "knowbee-installer-verify-$Target.exe")) $VerifierPath 67108864
   }
@@ -341,6 +344,7 @@ try {
     Stop-Installer "verifier_digest_mismatch"
   }
 
+  $CurrentPhase = "manifest_verification"
   $ReceiptLines = @(& $VerifierPath --manifest $ManifestPath --target $Target --output-format shell)
   if ($LASTEXITCODE -ne 0) {
     Stop-Installer "manifest_verification_failed"
@@ -357,12 +361,15 @@ try {
   if (-not $Options.Json) { Write-Host "Knowbee bootstrap verified: target=$Target release=$($Receipt['release_version']) artifact=$($Receipt['name'])" }
   $ArtifactPath = Join-Path $TemporaryDirectory $Receipt["name"]
   if ($null -ne $Options.ManifestPath) {
+    $CurrentPhase = "offline_inputs"
     Copy-LocalAsset (Join-Path $BundleItem.FullName $Receipt["name"]) $ArtifactPath $ArtifactSize
   }
   else {
+    $CurrentPhase = "artifact_download"
     Get-ReleaseAsset ([Uri]::new($ReleaseBase, $Receipt["name"])) $ArtifactPath $ArtifactSize
   }
   $StagePath = Join-Path $TemporaryDirectory "stage"
+  $CurrentPhase = "artifact_verification"
   $ReceiptLines = @(& $VerifierPath --manifest $ManifestPath --target $Target --artifact $ArtifactPath --stage $StagePath --output-format shell)
   if ($LASTEXITCODE -ne 0) {
     Stop-Installer "artifact_staging_failed"
@@ -385,6 +392,7 @@ try {
   if ($Options.Json) { $ApplyArguments += "--json" }
   # The staged Windows entrypoint is a .cmd file. Start it as a child process so
   # both Windows PowerShell 5.1 and PowerShell 7 observe its exit code directly.
+  $CurrentPhase = "application_apply"
   $Application = Start-Process -FilePath $EntryPointPath -ArgumentList $ApplyArguments -Wait -PassThru -NoNewWindow
   if ($Application.ExitCode -ne 0) {
     Stop-Installer "install_application_failed"
@@ -399,7 +407,7 @@ catch {
   }
   $ErrorResult = @{ status = "rejected"; reasonCode = $ReasonCode }
   if ($FieldDebugRequested) {
-    $ErrorResult.fieldDebug = @{ exceptionType = $_.Exception.GetType().Name }
+    $ErrorResult.fieldDebug = @{ exceptionType = $_.Exception.GetType().Name; phase = $CurrentPhase }
     # The hosted clean-machine observer intentionally captures stdout. Keep this
     # bounded diagnostic structured and opt-in; no message, path, or payload escapes.
     [Console]::Out.WriteLine(($ErrorResult | ConvertTo-Json -Compress))

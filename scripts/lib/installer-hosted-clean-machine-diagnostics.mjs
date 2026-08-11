@@ -1,5 +1,14 @@
 const REASON_CODE = /^[a-z0-9_.:-]{1,160}$/u
 const FIELD_DEBUG_EXCEPTION = /^Knowbee installer field-debug exception-type=([A-Za-z][A-Za-z0-9.]{0,120})$/u
+const FIELD_DEBUG_PHASES = new Set([
+  "host_preflight",
+  "offline_inputs",
+  "bootstrap_assets",
+  "manifest_verification",
+  "artifact_download",
+  "artifact_verification",
+  "application_apply",
+])
 
 /**
  * Reduces installer output to a public, bounded failure code. Hosted clean-machine
@@ -24,14 +33,22 @@ export function installerFailureReason(output) {
   const reasonCode = reasonCodes.findLast((value) => value !== "installer_failed")
   if (reasonCode) return reasonCode
 
-  const exception = results
-    .map((value) => value.fieldDebug?.exceptionType)
-    .findLast((value) => typeof value === "string" && /^[A-Za-z][A-Za-z0-9.]{0,120}$/u.test(value))
+  const debugResult = results
+    .map((value) => value.fieldDebug)
+    .findLast(
+      (value) =>
+        typeof value?.exceptionType === "string" &&
+        /^[A-Za-z][A-Za-z0-9.]{0,120}$/u.test(value.exceptionType),
+    )
+  const exception = debugResult?.exceptionType
     ?? lines
     .map((line) => FIELD_DEBUG_EXCEPTION.exec(line)?.[1])
     .findLast((value) => typeof value === "string")
   if (reasonCodes.includes("installer_failed") && exception) {
-    return `installer_failed:${exception.toLowerCase()}`
+    const phase = debugResult?.phase
+    return typeof phase === "string" && FIELD_DEBUG_PHASES.has(phase)
+      ? `installer_failed:${exception.toLowerCase()}:${phase}`
+      : `installer_failed:${exception.toLowerCase()}`
   }
 
   const matches = output.match(/installer_[a-z0-9_:-]{1,160}/gu)
