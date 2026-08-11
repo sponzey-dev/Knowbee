@@ -75,7 +75,18 @@ jobs:
           cp "${verifier_assets[@]}" release/finalized-assets/
           candidate_id="$(node -e 'const fs=require("node:fs"); const value=JSON.parse(fs.readFileSync(process.argv[1], "utf8")); process.stdout.write(value.candidateId)' release/final-installer/installer-release-gate.json)"
           set +e
-          node scripts/collect-installer-finalized-assets.mjs collect \
+          node --input-type=module --eval '
+            import { runInstallerFinalizedAssetsCli } from "./scripts/collect-installer-finalized-assets.mjs"
+            const emit = (result) => {
+              process.stdout.write(`${JSON.stringify(result)}\\n`)
+              if (result.status !== "ready" && result.status !== "verified") process.exitCode = 1
+            }
+            try {
+              emit(await runInstallerFinalizedAssetsCli(process.argv.slice(1)))
+            } catch {
+              emit({ status: "rejected", reasonCode: "installer_finalized_execution_failed" })
+            }
+          ' collect \
             --candidate-id "$candidate_id" \
             --release-tag "$RELEASE_TAG" \
             --asset-root release/finalized-assets \
